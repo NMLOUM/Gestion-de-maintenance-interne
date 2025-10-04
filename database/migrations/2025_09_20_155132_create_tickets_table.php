@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             
             // Statuts et priorité
-            $table->enum('status', ['pending', 'in_progress', 'resolved', 'closed', 'cancelled'])
+            $table->enum('status', ['pending', 'in_progress', 'resolved', 'validated', 'closed', 'cancelled'])
                   ->default('pending');
             $table->enum('priority', ['low', 'normal', 'high', 'critical'])->default('normal');
             

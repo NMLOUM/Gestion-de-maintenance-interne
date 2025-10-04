@@ -1,13 +1,30 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue';
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue';
 
 const props = defineProps({
     myTickets: Array,
     stats: Object
+});
+
+const activeTab = ref('tickets');
+let refreshInterval = null;
+
+// Rafraîchir les données toutes les 60 secondes
+onMounted(() => {
+    refreshInterval = setInterval(() => {
+        router.reload({ only: ['myTickets', 'stats'] });
+    }, 60000); // 60 secondes
+});
+
+// Nettoyer l'intervalle quand le composant est détruit
+onUnmounted(() => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
 });
 
 // Séparer les tickets par statut
@@ -135,12 +152,33 @@ const getStatusLabel = (status) => {
                     </div>
                 </div>
 
-                <!-- 🟡 Mes tickets en cours -->
-                <div v-if="activeTickets.length > 0" class="bg-white rounded-lg shadow-sm">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">🔔 Mes demandes en cours ({{ activeTickets.length }})</h3>
-                    </div>
-                    <div class="p-6 space-y-4">
+                <!-- Navigation par onglets -->
+                <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+                    <nav class="flex -mb-px border-b border-gray-200">
+                        <button @click="activeTab = 'tickets'"
+                                :class="activeTab === 'tickets'
+                                    ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="py-4 px-6 border-b-2 font-medium text-sm transition">
+                            🎫 Mes tickets ({{ activeTickets.length + resolvedTickets.length }})
+                        </button>
+                        <button @click="activeTab = 'faq'"
+                                :class="activeTab === 'faq'
+                                    ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="py-4 px-6 border-b-2 font-medium text-sm transition">
+                            ❓ Aide & FAQ
+                        </button>
+                    </nav>
+
+                    <!-- Tab: Mes tickets -->
+                    <div v-show="activeTab === 'tickets'" class="p-6">
+                        <!-- 🟡 Mes tickets en cours -->
+                        <div v-if="activeTickets.length > 0" class="mb-6">
+                            <div class="mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">🔔 Mes demandes en cours ({{ activeTickets.length }})</h3>
+                            </div>
+                            <div class="space-y-4">
                         <div v-for="ticket in activeTickets" :key="ticket.id"
                              class="border border-gray-200 rounded-lg p-5 hover:shadow-md hover:border-indigo-300 transition">
                             <div class="flex justify-between items-start mb-3">
@@ -159,6 +197,19 @@ const getStatusLabel = (status) => {
                                         <span v-else class="text-yellow-600">
                                             ⏳ En attente d'assignation
                                         </span>
+                                    </div>
+
+                                    <!-- Dernier commentaire -->
+                                    <div v-if="ticket.last_comment" class="mt-3 bg-gray-50 border-l-4 border-indigo-400 p-3 rounded">
+                                        <div class="flex items-center text-xs text-gray-600 mb-1">
+                                            <svg class="w-4 h-4 mr-1 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span class="font-medium">{{ ticket.last_comment.user?.name }}</span>
+                                            <span class="mx-1">•</span>
+                                            <span>{{ getTimeAgo(ticket.last_comment.created_at) }}</span>
+                                        </div>
+                                        <p class="text-sm text-gray-700 line-clamp-2">{{ ticket.last_comment.comment }}</p>
                                     </div>
                                 </div>
                                 <Link :href="route('tickets.show', ticket.id)"
@@ -193,11 +244,11 @@ const getStatusLabel = (status) => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
 
-                <!-- ✅ Tickets résolus à valider -->
-                <div v-if="resolvedTickets.length > 0" class="bg-green-50 border-l-4 border-green-500 rounded-lg shadow-sm p-6">
+                        <!-- ✅ Tickets résolus à valider -->
+                        <div v-if="resolvedTickets.length > 0" class="bg-green-50 border-l-4 border-green-500 rounded-lg p-6">
                     <div class="flex items-center mb-4">
                         <svg class="w-6 h-6 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -228,12 +279,12 @@ const getStatusLabel = (status) => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
 
-                <!-- Message si aucun ticket -->
-                <div v-if="!myTickets || myTickets.length === 0"
-                     class="bg-white rounded-lg shadow-sm p-12 text-center">
+                        <!-- Message si aucun ticket -->
+                        <div v-if="!myTickets || myTickets.length === 0"
+                             class="p-12 text-center">
                     <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -246,10 +297,12 @@ const getStatusLabel = (status) => {
                         </svg>
                         Créer ma première demande
                     </Link>
-                </div>
+                        </div>
 
-                <!-- Actions rapides -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Actions rapides -->
+                        <div class="mt-8">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">⚡ Actions rapides</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Link :href="route('tickets.index')"
                           class="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-indigo-500 hover:shadow-md transition text-center">
                         <svg class="w-12 h-12 mx-auto text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -267,14 +320,81 @@ const getStatusLabel = (status) => {
                         <h4 class="font-semibold text-gray-900 mb-1">Nouveau ticket</h4>
                         <p class="text-sm text-gray-600">Créer une demande</p>
                     </Link>
+                        </div>
+                        </div>
+                    </div>
 
-                    <a href="#" class="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-indigo-500 hover:shadow-md transition text-center">
-                        <svg class="w-12 h-12 mx-auto text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <!-- Tab: FAQ -->
+                    <div v-show="activeTab === 'faq'" class="p-6">
+                        <div class="flex items-center mb-6">
+                        <svg class="w-8 h-8 text-indigo-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <h4 class="font-semibold text-gray-900 mb-1">Aide & FAQ</h4>
-                        <p class="text-sm text-gray-600">Questions fréquentes</p>
-                    </a>
+                        <h3 class="text-xl font-bold text-gray-900">❓ Aide & Questions Fréquentes</h3>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- FAQ Item 1 -->
+                        <div class="bg-white rounded-lg p-4 border border-indigo-100">
+                            <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                <svg class="w-5 h-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                                Comment créer un ticket de maintenance ?
+                            </h4>
+                            <p class="text-sm text-gray-600">Cliquez sur "Nouveau Ticket" en haut de cette page, remplissez le formulaire avec les détails de votre problème, et soumettez. Vous recevrez une notification quand un technicien sera assigné.</p>
+                        </div>
+
+                        <!-- FAQ Item 2 -->
+                        <div class="bg-white rounded-lg p-4 border border-indigo-100">
+                            <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                <svg class="w-5 h-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                                Combien de temps prend le traitement d'un ticket ?
+                            </h4>
+                            <p class="text-sm text-gray-600">
+                                Le délai dépend de la priorité : <strong class="text-red-600">Critique (24h)</strong>,
+                                <strong class="text-orange-600">Élevée (3 jours)</strong>,
+                                <strong class="text-yellow-600">Normale (7 jours)</strong>,
+                                <strong class="text-green-600">Faible (14 jours)</strong>.
+                            </p>
+                        </div>
+
+                        <!-- FAQ Item 3 -->
+                        <div class="bg-white rounded-lg p-4 border border-indigo-100">
+                            <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                <svg class="w-5 h-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                                Comment suivre l'avancement de mon ticket ?
+                            </h4>
+                            <p class="text-sm text-gray-600">Cliquez sur "Voir détails" sur n'importe quel ticket pour voir son statut, les commentaires des techniciens, et l'historique complet. Vous pouvez également ajouter des commentaires pour plus d'informations.</p>
+                        </div>
+
+                        <!-- FAQ Item 4 -->
+                        <div class="bg-white rounded-lg p-4 border border-indigo-100">
+                            <h4 class="font-semibold text-gray-900 mb-2 flex items-center">
+                                <svg class="w-5 h-5 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                                </svg>
+                                Que faire quand mon ticket est résolu ?
+                            </h4>
+                            <p class="text-sm text-gray-600">Consultez le ticket résolu dans la section "Tickets résolus - À valider", vérifiez que le problème est bien résolu, puis validez la résolution. Si le problème persiste, vous pouvez le signaler dans les commentaires.</p>
+                        </div>
+
+                        <!-- Contact Support -->
+                        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg p-4 text-white">
+                            <h4 class="font-semibold mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                </svg>
+                                Besoin d'aide supplémentaire ?
+                            </h4>
+                            <p class="text-sm text-indigo-100">Contactez le service IT pour toute question urgente ou non couverte par la FAQ.</p>
+                        </div>
+                    </div>
+                    </div>
                 </div>
 
             </div>

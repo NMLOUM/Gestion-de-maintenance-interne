@@ -285,9 +285,10 @@ class TicketService
         $allowedTransitions = [
             'pending' => ['in_progress', 'cancelled'],
             'in_progress' => ['resolved', 'pending'],
-            'resolved' => ['closed', 'in_progress'],
+            'resolved' => ['validated', 'in_progress', 'closed'], // Résolu → Validation, retour en cours ou clôture
+            'validated' => ['closed', 'in_progress'], // Validé → Clôture ou réouverture
             'closed' => [], // Un ticket fermé ne peut pas changer de statut
-            'cancelled' => ['pending'], // Un ticket annulé peut être réouvert
+            'cancelled' => [], // Un ticket annulé ne peut pas changer de statut
         ];
 
         return in_array($newStatus, $allowedTransitions[$currentStatus] ?? []);

@@ -73,12 +73,24 @@ class DashboardController extends Controller
             'resolved' => Ticket::where('requester_id', $userId)->where('status', 'resolved')->count(),
         ];
 
-        // SEULEMENT les tickets créés par CET employé
-        $myTickets = Ticket::with(['assignedUser', 'category'])
+        // SEULEMENT les tickets créés par CET employé avec dernier commentaire
+        $myTickets = Ticket::with([
+                                'assignedUser',
+                                'category',
+                                'comments' => function ($query) {
+                                    $query->latest()->limit(1)->with('user');
+                                }
+                            ])
                           ->where('requester_id', $userId) // FILTRAGE STRICT
                           ->orderBy('created_at', 'desc')
                           ->limit(10)
-                          ->get();
+                          ->get()
+                          ->map(function ($ticket) {
+                              // Ajouter le dernier commentaire au ticket
+                              $ticket->last_comment = $ticket->comments->first();
+                              unset($ticket->comments); // Nettoyer pour éviter la duplication
+                              return $ticket;
+                          });
 
         return Inertia::render('Dashboard/Employe', [
             'stats' => $stats,
@@ -99,11 +111,12 @@ class DashboardController extends Controller
             'pending_tickets' => Ticket::where('status', 'pending')->count(),
             'in_progress_tickets' => Ticket::where('status', 'in_progress')->count(),
             'resolved_tickets' => Ticket::where('status', 'resolved')->count(),
+            'validated_tickets' => Ticket::where('status', 'validated')->count(),
             'resolved_this_month' => Ticket::where('status', 'resolved')
                                            ->whereMonth('resolved_at', $now->month)
                                            ->count(),
             'critical_tickets' => Ticket::where('priority', 'critical')
-                                        ->whereNotIn('status', ['resolved', 'closed'])
+                                        ->whereNotIn('status', ['resolved', 'validated', 'closed'])
                                         ->count(),
             'overdue_tickets' => $this->getOverdueTicketsCount(),
             'unassigned_tickets' => Ticket::whereNull('assigned_to')
@@ -116,7 +129,7 @@ class DashboardController extends Controller
         // Tickets CRITIQUES non résolus (séparés des autres)
         $criticalTickets = Ticket::with(['requester', 'assignedUser', 'category'])
                                  ->where('priority', 'critical')
-                                 ->whereNotIn('status', ['resolved', 'closed'])
+                                 ->whereNotIn('status', ['resolved', 'validated', 'closed'])
                                  ->orderBy('created_at', 'asc')
                                  ->limit(5)
                                  ->get();
@@ -209,6 +222,9 @@ class DashboardController extends Controller
                                             ];
                                         });
 
+        // Performance SLA
+        $slaPerformance = $this->getSLAPerformance();
+
         return Inertia::render('Dashboard/ResponsableIt', [
             'stats' => $stats,
             'criticalTickets' => $criticalTickets,
@@ -219,6 +235,7 @@ class DashboardController extends Controller
             'overdueTickets' => $overdueTickets,
             'technicians' => $technicians,
             'recentActivities' => $recentActivities,
+            'slaPerformance' => $slaPerformance,
         ]);
     }
 
@@ -261,12 +278,16 @@ class DashboardController extends Controller
         // Tendance des tickets (30 derniers jours)
         $ticketTrend = $this->getTicketTrend();
 
+        // Performance SLA
+        $slaPerformance = $this->getSLAPerformance();
+
         return Inertia::render('Dashboard/Direction', [
             'stats' => $stats,
             'ticketsByService' => $ticketsByService,
             'ticketsByCategory' => $ticketsByCategory,
             'globalPerformance' => $globalPerformance,
             'ticketTrend' => $ticketTrend,
+            'slaPerformance' => $slaPerformance,
         ]);
     }
 
@@ -354,6 +375,63 @@ class DashboardController extends Controller
                      ->orderBy('created_at', 'asc')
                      ->limit(10)
                      ->get();
+    }
+
+    private function getSLAPerformance()
+    {
+        $now = Carbon::now();
+
+        // Tickets actifs (non résolus/fermés)
+        $activeTickets = Ticket::whereNotIn('status', ['resolved', 'closed', 'cancelled'])->get();
+
+        $slaData = [
+            'critical' => ['total' => 0, 'on_time' => 0, 'overdue' => 0, 'sla_hours' => 24],
+            'high' => ['total' => 0, 'on_time' => 0, 'overdue' => 0, 'sla_hours' => 72],
+            'normal' => ['total' => 0, 'on_time' => 0, 'overdue' => 0, 'sla_hours' => 168],
+            'low' => ['total' => 0, 'on_time' => 0, 'overdue' => 0, 'sla_hours' => 336],
+        ];
+
+        foreach ($activeTickets as $ticket) {
+            $priority = $ticket->priority;
+            if (!isset($slaData[$priority])) continue;
+
+            $slaData[$priority]['total']++;
+
+            $hoursElapsed = $ticket->created_at->diffInHours($now);
+            $slaHours = $slaData[$priority]['sla_hours'];
+
+            if ($hoursElapsed > $slaHours) {
+                $slaData[$priority]['overdue']++;
+            } else {
+                $slaData[$priority]['on_time']++;
+            }
+        }
+
+        // Calculer les pourcentages
+        foreach ($slaData as $priority => &$data) {
+            if ($data['total'] > 0) {
+                $data['on_time_percent'] = round(($data['on_time'] / $data['total']) * 100, 1);
+                $data['overdue_percent'] = round(($data['overdue'] / $data['total']) * 100, 1);
+            } else {
+                $data['on_time_percent'] = 0;
+                $data['overdue_percent'] = 0;
+            }
+        }
+
+        // Performance SLA globale
+        $totalActive = array_sum(array_column($slaData, 'total'));
+        $totalOnTime = array_sum(array_column($slaData, 'on_time'));
+        $totalOverdue = array_sum(array_column($slaData, 'overdue'));
+
+        return [
+            'by_priority' => $slaData,
+            'global' => [
+                'total' => $totalActive,
+                'on_time' => $totalOnTime,
+                'overdue' => $totalOverdue,
+                'on_time_percent' => $totalActive > 0 ? round(($totalOnTime / $totalActive) * 100, 1) : 0,
+            ]
+        ];
     }
 
     /**

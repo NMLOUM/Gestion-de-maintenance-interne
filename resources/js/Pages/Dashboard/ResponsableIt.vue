@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue';
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue';
 import AssignTicketModal from '@/Components/Tickets/AssignTicketModal.vue';
@@ -15,12 +15,36 @@ const props = defineProps({
     overdueTickets: Array,
     stats: Object,
     technicians: Array,
-    recentActivities: Array
+    recentActivities: Array,
+    slaPerformance: Object
 });
 
 const showAssignModal = ref(false);
 const selectedTicket = ref(null);
 const activeTab = ref('overview'); // overview, team, tickets, activities
+let refreshInterval = null;
+
+// Exposer activeTab globalement pour permettre la navigation depuis le menu
+if (typeof window !== 'undefined') {
+    window.dashboardActiveTab = activeTab;
+}
+
+// Rafraîchir les données toutes les 60 secondes
+onMounted(() => {
+    refreshInterval = setInterval(() => {
+        router.reload({
+            only: ['stats', 'criticalTickets', 'unassignedTickets', 'technicianPerformance',
+                   'ticketsByCategory', 'ticketsByPriority', 'overdueTickets', 'recentActivities', 'slaPerformance']
+        });
+    }, 60000); // 60 secondes
+});
+
+// Nettoyer l'intervalle quand le composant est détruit
+onUnmounted(() => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
 
 // Calculer la tendance (comparaison avec le mois précédent)
 const ticketTrend = computed(() => {
@@ -52,6 +76,7 @@ const getTimeAgo = (date) => {
     if (diffHours > 0) return `il y a ${diffHours}h`;
     return 'à l\'instant';
 };
+
 </script>
 
 <template>
@@ -152,26 +177,12 @@ const getTimeAgo = (date) => {
                                     class="py-4 px-6 border-b-2 font-medium text-sm transition">
                                 📊 Vue d'ensemble
                             </button>
-                            <button @click="activeTab = 'team'"
-                                    :class="activeTab === 'team'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                                    class="py-4 px-6 border-b-2 font-medium text-sm transition">
-                                👥 Performance équipe
-                            </button>
                             <button @click="activeTab = 'tickets'"
                                     :class="activeTab === 'tickets'
                                         ? 'border-indigo-500 text-indigo-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                     class="py-4 px-6 border-b-2 font-medium text-sm transition">
                                 🎫 Tickets nécessitant action
-                            </button>
-                            <button @click="activeTab = 'activities'"
-                                    :class="activeTab === 'activities'
-                                        ? 'border-indigo-500 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                                    class="py-4 px-6 border-b-2 font-medium text-sm transition">
-                                📜 Historique récent
                             </button>
                         </nav>
                     </div>
@@ -225,6 +236,63 @@ const getTimeAgo = (date) => {
                                             </button>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Performance des techniciens -->
+                            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                                <h3 class="text-lg font-bold text-gray-900 mb-4">👥 Performance de l'équipe technique</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Technicien</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tickets actifs</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total assignés</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Résolus</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Taux résolution</th>
+                                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Temps moyen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr v-for="tech in technicianPerformance" :key="tech.id" class="hover:bg-gray-50">
+                                                <td class="px-4 py-3 whitespace-nowrap">
+                                                    <div class="flex items-center">
+                                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                                            {{ tech.name.charAt(0) }}
+                                                        </div>
+                                                        <div class="ml-3">
+                                                            <div class="text-sm font-medium text-gray-900">{{ tech.name }}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                                    <span class="px-2 py-1 text-sm font-semibold text-blue-700 bg-blue-100 rounded-full">
+                                                        {{ tech.active_tickets || 0 }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900">
+                                                    {{ tech.total_assigned || 0 }}
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600 font-medium">
+                                                    {{ tech.resolved_count || 0 }}
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center">
+                                                    <span class="px-2 py-1 text-xs font-semibold rounded-full"
+                                                         :class="{
+                                                             'text-green-700 bg-green-100': tech.resolution_rate >= 70,
+                                                             'text-yellow-700 bg-yellow-100': tech.resolution_rate >= 50 && tech.resolution_rate < 70,
+                                                             'text-red-700 bg-red-100': tech.resolution_rate < 50
+                                                         }">
+                                                        {{ tech.resolution_rate || 0 }}%
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-600">
+                                                    {{ tech.avg_resolution_hours || 0 }}h
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -497,20 +565,169 @@ const getTimeAgo = (date) => {
                                 </Link>
                             </div>
                         </div>
+
+                        <!-- TAB: PERFORMANCE SLA - REMOVED (already in Direction dashboard) -->
+                        <div v-show="activeTab === 'sla'" class="space-y-6" style="display: none;">
+                            <!-- Performance SLA Globale -->
+                            <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-6 h-6 text-indigo-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                    </svg>
+                                    ⏱️ Performance SLA Globale
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div class="bg-white rounded-lg p-4 text-center">
+                                        <div class="text-3xl font-bold text-gray-900">{{ slaPerformance?.global?.total || 0 }}</div>
+                                        <div class="text-sm text-gray-600 mt-1">Tickets actifs</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-4 text-center">
+                                        <div class="text-3xl font-bold text-green-600">{{ slaPerformance?.global?.on_time || 0 }}</div>
+                                        <div class="text-sm text-gray-600 mt-1">Dans les délais</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-4 text-center">
+                                        <div class="text-3xl font-bold text-red-600">{{ slaPerformance?.global?.overdue || 0 }}</div>
+                                        <div class="text-sm text-gray-600 mt-1">En retard</div>
+                                    </div>
+                                    <div class="bg-white rounded-lg p-4 text-center">
+                                        <div class="text-4xl font-bold text-indigo-600">{{ slaPerformance?.global?.on_time_percent || 0 }}%</div>
+                                        <div class="text-sm text-gray-600 mt-1">Taux de respect SLA</div>
+                                        <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-indigo-600 h-2 rounded-full transition-all"
+                                                 :style="{ width: (slaPerformance?.global?.on_time_percent || 0) + '%' }">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SLA Details par priorité -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Détails SLA par priorité</h3>
+                                <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priorité</th>
+                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SLA</th>
+                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">À temps</th>
+                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">En retard</th>
+                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">% Respect</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr class="hover:bg-red-50">
+                                                <td class="px-6 py-4">
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                        🔴 Critique
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-600">24 heures</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold">{{ slaPerformance?.by_priority?.critical?.total || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-green-600">{{ slaPerformance?.by_priority?.critical?.on_time || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-red-600">{{ slaPerformance?.by_priority?.critical?.overdue || 0 }}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex items-center justify-center">
+                                                        <span class="text-sm font-bold mr-2">{{ slaPerformance?.by_priority?.critical?.on_time_percent || 0 }}%</span>
+                                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                            <div class="bg-green-600 h-2 rounded-full" :style="{ width: (slaPerformance?.by_priority?.critical?.on_time_percent || 0) + '%' }"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="hover:bg-orange-50">
+                                                <td class="px-6 py-4">
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                                                        🟠 Élevée
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-600">72 heures (3 jours)</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold">{{ slaPerformance?.by_priority?.high?.total || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-green-600">{{ slaPerformance?.by_priority?.high?.on_time || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-red-600">{{ slaPerformance?.by_priority?.high?.overdue || 0 }}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex items-center justify-center">
+                                                        <span class="text-sm font-bold mr-2">{{ slaPerformance?.by_priority?.high?.on_time_percent || 0 }}%</span>
+                                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                            <div class="bg-green-600 h-2 rounded-full" :style="{ width: (slaPerformance?.by_priority?.high?.on_time_percent || 0) + '%' }"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="hover:bg-yellow-50">
+                                                <td class="px-6 py-4">
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                        🟡 Normale
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-600">168 heures (7 jours)</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold">{{ slaPerformance?.by_priority?.normal?.total || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-green-600">{{ slaPerformance?.by_priority?.normal?.on_time || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-red-600">{{ slaPerformance?.by_priority?.normal?.overdue || 0 }}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex items-center justify-center">
+                                                        <span class="text-sm font-bold mr-2">{{ slaPerformance?.by_priority?.normal?.on_time_percent || 0 }}%</span>
+                                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                            <div class="bg-green-600 h-2 rounded-full" :style="{ width: (slaPerformance?.by_priority?.normal?.on_time_percent || 0) + '%' }"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="hover:bg-green-50">
+                                                <td class="px-6 py-4">
+                                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        🟢 Faible
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4 text-sm text-gray-600">336 heures (14 jours)</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold">{{ slaPerformance?.by_priority?.low?.total || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-green-600">{{ slaPerformance?.by_priority?.low?.on_time || 0 }}</td>
+                                                <td class="px-6 py-4 text-center text-sm font-bold text-red-600">{{ slaPerformance?.by_priority?.low?.overdue || 0 }}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex items-center justify-center">
+                                                        <span class="text-sm font-bold mr-2">{{ slaPerformance?.by_priority?.low?.on_time_percent || 0 }}%</span>
+                                                        <div class="w-24 bg-gray-200 rounded-full h-2">
+                                                            <div class="bg-green-600 h-2 rounded-full" :style="{ width: (slaPerformance?.by_priority?.low?.on_time_percent || 0) + '%' }"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- ⚡ ACTIONS RAPIDES -->
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-white mb-4">⚡ Actions rapides</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <Link :href="route('tickets.index')"
                               class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
                             <svg class="w-10 h-10 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                                 <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                             </svg>
-                            <span class="text-sm font-semibold block">Tous les tickets</span>
+                            <span class="text-sm font-semibold block">📋 Tous les tickets</span>
+                        </Link>
+
+                        <Link :href="route('tickets.index', { status: 'in_progress' })"
+                              class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
+                            <svg class="w-10 h-10 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="text-sm font-semibold block">🔧 Tickets en cours</span>
+                        </Link>
+
+                        <Link :href="route('tickets.index', { assigned_to: 'assigned' })"
+                              class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
+                            <svg class="w-10 h-10 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                            </svg>
+                            <span class="text-sm font-semibold block">👥 Tickets assignés</span>
                         </Link>
 
                         <Link :href="route('history.index')"
@@ -518,7 +735,7 @@ const getTimeAgo = (date) => {
                             <svg class="w-10 h-10 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                             </svg>
-                            <span class="text-sm font-semibold block">Historique complet</span>
+                            <span class="text-sm font-semibold block">📜 Historique complet</span>
                         </Link>
                     </div>
                 </div>

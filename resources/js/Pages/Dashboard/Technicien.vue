@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue';
@@ -8,6 +8,22 @@ import StatusBadge from '@/Components/Tickets/StatusBadge.vue';
 const props = defineProps({
     assignedTickets: Array,
     stats: Object
+});
+
+let refreshInterval = null;
+
+// Rafraîchir les données toutes les 60 secondes
+onMounted(() => {
+    refreshInterval = setInterval(() => {
+        router.reload({ only: ['assignedTickets', 'stats'] });
+    }, 60000); // 60 secondes
+});
+
+// Nettoyer l'intervalle quand le composant est détruit
+onUnmounted(() => {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
 });
 
 // Séparer les tickets par statut pour une meilleure organisation

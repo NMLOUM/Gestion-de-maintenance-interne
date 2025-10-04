@@ -30,6 +30,10 @@ const statusConfig = {
     label: 'Résolu',
     classes: 'bg-green-100 text-green-800'
   },
+  validated: {
+    label: 'Validé',
+    classes: 'bg-emerald-100 text-emerald-800'
+  },
   closed: {
     label: 'Fermé',
     classes: 'bg-gray-100 text-gray-800'

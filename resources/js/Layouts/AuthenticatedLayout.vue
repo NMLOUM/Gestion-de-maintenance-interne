@@ -6,9 +6,23 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+
+// Fonction pour aller à l'onglet Performance de l'équipe
+const goToTeamPerformance = () => {
+    router.visit(route('dashboard'), {
+        onSuccess: () => {
+            // Attendre que la page soit chargée puis changer l'onglet
+            setTimeout(() => {
+                if (window.dashboardActiveTab) {
+                    window.dashboardActiveTab.value = 'team';
+                }
+            }, 100);
+        }
+    });
+};
 </script>
 
 <template>
@@ -22,9 +36,7 @@ const showingNavigationDropdown = ref(false);
                             <!-- Logo -->
                             <div class="shrink-0 flex items-center">
                                 <Link :href="route('dashboard')">
-                                    <ApplicationLogo
-                                        class="block h-9 w-auto fill-current text-gray-800"
-                                    />
+                                    <ApplicationLogo class="block h-9 w-auto" />
                                 </Link>
                             </div>
 
@@ -50,9 +62,6 @@ const showingNavigationDropdown = ref(false);
 
                                 <!-- Navigation pour Responsable IT -->
                                 <template v-if="$page.props.auth.user.role === 'responsable_it'">
-                                    <NavLink :href="route('users.index')" :active="route().current('users.*')">
-                                        Utilisateurs
-                                    </NavLink>
                                     <NavLink :href="route('reports.index')" :active="route().current('reports.*')">
                                         Rapports
                                     </NavLink>
@@ -69,7 +78,6 @@ const showingNavigationDropdown = ref(false);
                                 </template>
                             </div>
                         </div>
-
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
                             <!-- Notification Bell -->
                             <div class="ms-3">
@@ -78,17 +86,26 @@ const showingNavigationDropdown = ref(false);
 
                             <!-- Settings Dropdown -->
                             <div class="ms-3 relative">
-                                <Dropdown align="right" width="48">
+                                <Dropdown align="right" width="64">
                                     <template #trigger>
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
                                                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150"
                                             >
-                                                {{ $page.props.auth.user.name }}
-                                                <span class="ml-1 text-xs text-gray-400">
-                                                    ({{ $page.props.auth.user.role_display || 'Non défini' }})
-                                                </span>
+                                                <!-- Avatar avec initiales -->
+                                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm mr-2">
+                                                    {{ $page.props.auth.user.name.charAt(0).toUpperCase() }}
+                                                </div>
+
+                                                <div class="flex flex-col items-start">
+                                                    <span class="text-sm font-semibold text-gray-700">
+                                                        Bonjour, {{ $page.props.auth.user.name.split(' ')[0] }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-500">
+                                                        {{ $page.props.auth.user.role_display || 'Non défini' }}
+                                                    </span>
+                                                </div>
 
                                                 <svg
                                                     class="ms-2 -me-0.5 h-4 w-4"
@@ -107,9 +124,21 @@ const showingNavigationDropdown = ref(false);
                                     </template>
 
                                     <template #content>
-                                        <DropdownLink :href="route('profile.edit')"> Profile </DropdownLink>
+                                        <DropdownLink :href="route('profile.edit')">
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                </svg>
+                                                Mon Profil
+                                            </div>
+                                        </DropdownLink>
                                         <DropdownLink :href="route('logout')" method="post" as="button">
-                                            Log Out
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                                </svg>
+                                                Se déconnecter
+                                            </div>
                                         </DropdownLink>
                                     </template>
                                 </Dropdown>
@@ -163,8 +192,19 @@ const showingNavigationDropdown = ref(false);
                             Tickets
                         </ResponsiveNavLink>
 
-                        <!-- Navigation mobile pour Responsable IT et Direction -->
-                        <template v-if="['responsable_it', 'direction'].includes($page.props.auth.user.role)">
+                        <!-- Navigation mobile pour Responsable IT -->
+                        <template v-if="$page.props.auth.user.role === 'responsable_it'">
+                            <a href="#" @click.prevent="goToTeamPerformance"
+                               class="block w-full ps-3 pe-4 py-2 border-l-4 border-transparent text-start text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out">
+                                👥 Équipe de Performance
+                            </a>
+                            <ResponsiveNavLink :href="route('reports.index')" :active="route().current('reports.*')">
+                                Rapports
+                            </ResponsiveNavLink>
+                        </template>
+
+                        <!-- Navigation mobile pour Direction -->
+                        <template v-if="$page.props.auth.user.role === 'direction'">
                             <ResponsiveNavLink :href="route('users.index')" :active="route().current('users.*')">
                                 Utilisateurs
                             </ResponsiveNavLink>
@@ -176,22 +216,40 @@ const showingNavigationDropdown = ref(false);
 
                     <!-- Responsive Settings Options -->
                     <div class="pt-4 pb-1 border-t border-gray-200">
-                        <div class="px-4">
-                            <div class="font-medium text-base text-gray-800">
-                                {{ $page.props.auth.user.name }}
+                        <div class="px-4 flex items-center">
+                            <!-- Avatar avec initiales -->
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg mr-3">
+                                {{ $page.props.auth.user.name.charAt(0).toUpperCase() }}
                             </div>
-                            <div class="font-medium text-sm text-gray-500">
-                                {{ $page.props.auth.user.email }}
-                            </div>
-                            <div class="font-medium text-xs text-gray-400">
-                                {{ $page.props.auth.user.role_display || 'Non défini' }}
+                            <div>
+                                <div class="font-medium text-base text-gray-800">
+                                    Bonjour, {{ $page.props.auth.user.name }}
+                                </div>
+                                <div class="font-medium text-sm text-gray-500">
+                                    {{ $page.props.auth.user.email }}
+                                </div>
+                                <div class="font-medium text-xs text-gray-400">
+                                    {{ $page.props.auth.user.role_display || 'Non défini' }}
+                                </div>
                             </div>
                         </div>
 
                         <div class="mt-3 space-y-1">
-                            <ResponsiveNavLink :href="route('profile.edit')"> Profile </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('profile.edit')">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                    </svg>
+                                    Mon Profil
+                                </div>
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('logout')" method="post" as="button">
-                                Log Out
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                    </svg>
+                                    Se déconnecter
+                                </div>
                             </ResponsiveNavLink>
                         </div>
                     </div>
