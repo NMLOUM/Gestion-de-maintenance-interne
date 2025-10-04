@@ -1,0 +1,323 @@
+```markdown
+# Système de Gestion de Maintenance Interne
+
+## Installation et Configuration
+
+### Prérequis
+- PHP 8.1 ou supérieur
+- MySQL 5.7 ou supérieur
+- Composer
+- Node.js et NPM
+- Extension PHP : ext-zip, ext-dom, ext-curl, ext-gd
+
+### 1. Installation du projet
+
+```bash
+# Installer les dépendances PHP
+composer install
+
+# Installer les dépendances Node.js
+npm install
+
+# Copier le fichier d'environnement
+cp .env.example .env
+
+# Générer la clé d'application
+php artisan key:generate
+```
+
+### 2. Configuration de la base de données
+
+Modifier le fichier `.env` :
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=maintenance_system
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
+
+### 3. Configuration des emails
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=your-smtp-server
+MAIL_PORT=587
+MAIL_USERNAME=your-email
+MAIL_PASSWORD=your-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@maintenance.local"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+### 4. Migrations et seeders
+
+```bash
+# Exécuter les migrations
+php artisan migrate
+
+# Peupler la base avec des données de test
+php artisan db:seed
+```
+
+### 5. Liens symboliques et assets
+
+```bash
+# Créer le lien symbolique pour le storage
+php artisan storage:link
+
+# Compiler les assets
+npm run build
+```
+
+
+
+### 6. Configuration du serveur web
+
+#### Apache (.htaccess déjà inclus)
+```apache
+<VirtualHost *:80>
+    DocumentRoot /path/to/maintenance-system/public
+    ServerName maintenance.local
+    
+    <Directory /path/to/maintenance-system/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+
+### 7. Configuration des tâches CRON
+
+```bash
+# Ajouter dans crontab (crontab -e)
+* * * * * cd /path/to/maintenance-system && php artisan schedule:run >> /dev/null 2>&1
+
+# Ou spécifiquement pour les notifications
+0 9 * * * cd /path/to/maintenance-system && php artisan tickets:notify-overdue
+```
+
+### 8. Comptes par défaut
+
+Après l'installation, vous pouvez vous connecter avec :
+
+**Administrateur :**
+- Email : direction@maintenance.local
+- Mot de passe : password
+
+**Superviseur :**
+- Email : responsable.it@maintenance.local  
+- Mot de passe : password
+
+**Technicien :**
+- Email : tech.informatique@maintenance.local
+- Mot de passe : password
+
+**Employé :**
+- Email : i.sarr@entreprise.sn
+- Mot de passe : password
+
+## Structure du projet
+
+### Backend (Laravel)
+- `app/Models/` - Modèles Eloquent
+- `app/Http/Controllers/` - Contrôleurs
+- `app/Services/` - Services métier
+- `app/Mail/` - Classes d'emails
+- `database/migrations/` - Migrations
+- `database/seeders/` - Seeders
+
+### Frontend (Vue.js)
+- `resources/js/Pages/` - Pages Vue
+- `resources/js/Components/` - Composants réutilisables
+- `resources/js/Layouts/` - Layouts de page
+
+## Fonctionnalités principales
+
+### Pour les employés
+- Créer des tickets de maintenance
+- Suivre l'état de leurs tickets
+- Ajouter des pieces jointes
+- Recevoir des notifications 
+
+### Pour les techniciens
+- Voir les tickets assignés
+- Mettre à jour le statut des tickets
+- Ajouter des commentaires et notes de résolution
+- Télécharger les pièces jointes
+
+### Pour les superviseurs/administrateurs
+- Gérer tous les tickets
+- Assigner les tickets aux techniciens
+- Générer des rapports PDF/Excel
+Admin
+- Gérer les utilisateurs et leurs rôles
+- Voir les statistiques globales
+-Acces complet
+
+## API Routes principales
+
+```php
+// Tickets
+GET /tickets - Liste des tickets
+POST /tickets - Créer un ticket
+GET /tickets/{id} - Voir un ticket
+PUT /tickets/{id} - Modifier un ticket
+POST /tickets/{id}/status - Changer le statut
+POST /tickets/{id}/assign - Assigner le ticket
+POST /tickets/{id}/comments - Ajouter un commentaire
+
+// Rapports (superviseurs/admins uniquement)  
+GET /reports - Page des rapports
+GET /reports/export-pdf - Export PDF
+GET /reports/export-excel - Export Excel
+
+// Utilisateurs (superviseurs/admins uniquement)
+GET /users - Liste des utilisateurs
+POST /users - Créer un utilisateur
+GET /users/{id} - Voir un utilisateur
+PUT /users/{id} - Modifier un utilisateur
+```
+
+## Personnalisation
+
+### Ajouter une nouvelle catégorie
+1. Insérer dans la table `categories`
+2. Optionnellement modifier le seeder `CategoriesSeeder`
+
+### Modifier les priorités
+1. Modifier l'enum dans la migration `create_tickets_table`
+2. Mettre à jour les modèles et vues selon les besoins
+
+### Ajouter de nouveaux rôles
+1. Modifier l'enum `role` dans la migration des users
+2. Mettre à jour les policies et middleware
+3. Adapter l'interface utilisateur
+
+## Maintenance
+
+### Commandes utiles
+```bash
+# Nettoyer le cache
+php artisan cache:clear
+php artisan config:clear
+php artisan view:clear
+
+# Sauvegarder la base de données
+mysqldump -u root -p maintenance_system > backup.sql
+
+# Logs d'application
+tail -f storage/logs/laravel.log
+```
+3. Utilisateurs ciblés 
+
+Employés/Services demandeurs : créent les tickets de maintenance. 
+
+Techniciens : reçoivent les tickets assignés et les mettent à jour. 
+
+Chef maintenance / Responsable IT : supervise, assigne les tickets et suit les performances. 
+
+Direction : consulte les rapports consolidés. 
+
+Forme 
+
+4. Fonctionnalités 
+
+4.1 Fonctionnalités minimales (MVP) 
+
+Soumission de demande : 
+
+Formulaire avec : titre, description, type de panne (IT, bâtiment, mobilier…), niveau d’urgence (faible, normal, critique). 
+
+Pièce jointe (photo si besoin). 
+
+Gestion des tickets : 
+
+Statuts : en attente, en cours, résolu. 
+
+Assignation d’un ticket à un technicien. 
+
+Tableau de bord simple : 
+
+Liste filtrable par statut, service, technicien.
+
+
+Base de données bien structurée
+
+Chaque table doit avoir les bonnes relations Eloquent :
+
+User (avec rôle : employé, technicien, responsable, direction).
+
+Ticket → appartient à un employe (créateur).
+
+Ticket → peut être assigné à un technicien.
+
+Ticket → validé/supervisé par un responsable.
+
+Evaluation → donnée par un employe une fois résolu.
+
+Les clés étrangères doivent être claires :
+
+tickets.cree_par → users.id
+
+tickets.assigne_a → users.id
+
+tickets.service_id → services.id
+
+
+Middleware et policies d’accès
+
+Protéger l’accès selon le rôle :
+
+Employé → ne voit que ses propres tickets.
+
+Technicien → ne voit que les tickets assignés.
+
+Responsable → voit tous les tickets de son service.
+
+Direction → voit tout.
+
+Scénario idéal :
+
+Employé crée un ticket → enregistré en BD.
+
+Responsable reçoit une notification (Inertia, Mail, DB).
+
+Il consulte son dashboard.
+
+Il assigne le ticket à un technicien.
+
+Technicien reçoit le ticket → il le voit dans son dashboard.
+
+Il démarre le travail.
+
+Met à jour le statut (en cours → résolu).
+
+Ajoute un commentaire d’intervention.
+
+Employé reçoit une notification → son ticket est résolu.
+
+Il peut consulter le détail.
+
+Il évalue l’intervention.
+
+Direction consulte les rapports (statistiques globales).
+
+Notifications et suivi en temps réel
+
+Utiliser Laravel Notifications (base de données + mail).
+
+Exemple :
+
+Quand un ticket est créé → Responsable notifié.
+
+Quand un ticket est assigné → Technicien notifié.
+
+Quand un ticket est résolu → Employé notifié.
+
+En Vue.js/Inertia → tu peux afficher une cloche de notifications en temps réel.
+
+Direction
+→ Accède à tous les tickets via des rapports/exports (pas de notifications, mais vue globale).
