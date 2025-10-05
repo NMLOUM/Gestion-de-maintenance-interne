@@ -64,7 +64,8 @@ Route::middleware('auth')->group(function () {
     // Rapports (pour responsable_it, direction et techniciens)
     Route::middleware('role:responsable_it,direction,technicien')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-        Route::post('/reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
+        Route::get('/reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
+        Route::get('/reports/sla', [ReportController::class, 'slaReport'])->name('reports.sla');
     });
 
     // Gestion des utilisateurs (direction et responsable_it)

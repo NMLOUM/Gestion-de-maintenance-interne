@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\Evaluation;
+use App\Models\User;
+use App\Notifications\TicketEvaluated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Notification;
 
 class EvaluationController extends Controller
 {
@@ -42,7 +45,7 @@ class EvaluationController extends Controller
             $message = 'Évaluation mise à jour avec succès.';
         } else {
             // Créer une nouvelle évaluation
-            Evaluation::create([
+            $evaluation = Evaluation::create([
                 'ticket_id' => $ticket->id,
                 'user_id' => auth()->id(),
                 'rating' => $validated['rating'],
@@ -50,6 +53,25 @@ class EvaluationController extends Controller
             ]);
 
             $message = 'Évaluation enregistrée avec succès. Merci pour votre retour !';
+        }
+
+        // Notifier le Responsable IT et le technicien assigné
+        $usersToNotify = collect();
+
+        // Ajouter le Responsable IT
+        $responsableIt = User::where('is_responsable_it', true)->first();
+        if ($responsableIt) {
+            $usersToNotify->push($responsableIt);
+        }
+
+        // Ajouter le technicien assigné si différent
+        if ($ticket->assignedUser && $ticket->assignedUser->id !== $responsableIt?->id) {
+            $usersToNotify->push($ticket->assignedUser);
+        }
+
+        // Envoyer les notifications
+        if ($usersToNotify->isNotEmpty()) {
+            Notification::send($usersToNotify, new TicketEvaluated($ticket, $evaluation));
         }
 
         return back()->with('success', $message);

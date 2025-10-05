@@ -69,6 +69,47 @@ const formatDate = (date) => {
         minute: '2-digit'
     });
 };
+
+const formatTime = (date) => {
+    return new Date(date).toLocaleString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+const getRelativeDate = (date) => {
+    const today = new Date();
+    const historyDate = new Date(date);
+    const diffTime = today - historyDate;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Aujourd\'hui';
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+
+    return historyDate.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+    });
+};
+
+const groupHistoriesByDate = (histories) => {
+    const groups = {};
+
+    histories.forEach(history => {
+        const dateKey = new Date(history.created_at).toDateString();
+        if (!groups[dateKey]) {
+            groups[dateKey] = {
+                date: history.created_at,
+                items: []
+            };
+        }
+        groups[dateKey].items.push(history);
+    });
+
+    return Object.values(groups);
+};
 </script>
 
 <template>
@@ -165,76 +206,94 @@ const formatDate = (date) => {
                     </div>
                 </div>
 
-                <!-- Liste de l'historique -->
+                <!-- Timeline de l'historique -->
                 <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
                         <h3 class="text-lg font-semibold text-gray-900">
                             📊 Historique ({{ histories.total }} actions)
                         </h3>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date & Heure
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Ticket
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Action
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Description
-                                    </th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Utilisateur
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr v-for="history in histories.data" :key="history.id" class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ formatDate(history.created_at) }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <Link
-                                            :href="route('tickets.show', history.ticket_id)"
-                                            class="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                                        >
-                                            #{{ history.ticket_id }}
-                                        </Link>
-                                        <p v-if="history.ticket" class="text-xs text-gray-500 mt-1">
-                                            {{ history.ticket.requester?.name }}
-                                        </p>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full"
-                                            :class="getActionColor(history.action)"
-                                        >
-                                            {{ getActionIcon(history.action) }} {{ actions[history.action] || history.action }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 text-sm text-gray-700">
-                                        {{ history.description }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-8 w-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                                {{ history.user?.name?.charAt(0) || '?' }}
-                                            </div>
-                                            <div class="ml-3">
-                                                <p class="font-medium">{{ history.user?.name || 'Système' }}</p>
-                                                <p class="text-xs text-gray-500">{{ history.user?.role }}</p>
+                    <div class="px-6 py-6">
+                        <!-- Timeline verticale -->
+                        <div v-for="group in groupHistoriesByDate(histories.data)" :key="group.date" class="mb-8 last:mb-0">
+                            <!-- En-tête de date -->
+                            <div class="flex items-center mb-4">
+                                <div class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-semibold text-sm">
+                                    {{ getRelativeDate(group.date) }}
+                                </div>
+                                <div class="flex-1 h-px bg-gray-200 ml-4"></div>
+                            </div>
+
+                            <!-- Items de la timeline -->
+                            <div class="relative pl-8 space-y-6">
+                                <!-- Ligne verticale -->
+                                <div class="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-purple-200 to-pink-200"></div>
+
+                                <div v-for="history in group.items" :key="history.id" class="relative">
+                                    <!-- Point sur la timeline -->
+                                    <div class="absolute -left-5 top-2 w-3 h-3 rounded-full border-2 border-white shadow-md"
+                                         :class="history.action === 'created' ? 'bg-blue-500' :
+                                                 history.action === 'assigned' ? 'bg-green-500' :
+                                                 history.action === 'status_changed' ? 'bg-yellow-500' :
+                                                 history.action === 'comment_added' ? 'bg-purple-500' :
+                                                 'bg-gray-400'">
+                                    </div>
+
+                                    <!-- Carte de l'événement -->
+                                    <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex-1">
+                                                <!-- En-tête -->
+                                                <div class="flex items-center gap-3 mb-2">
+                                                    <!-- Avatar -->
+                                                    <div class="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow">
+                                                        {{ history.user?.name?.charAt(0) || '?' }}
+                                                    </div>
+
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="font-semibold text-gray-900">{{ history.user?.name || 'Système' }}</span>
+                                                            <span
+                                                                class="px-2 py-0.5 text-xs font-semibold rounded-full"
+                                                                :class="getActionColor(history.action)"
+                                                            >
+                                                                {{ getActionIcon(history.action) }} {{ actions[history.action] || history.action }}
+                                                            </span>
+                                                        </div>
+                                                        <p class="text-xs text-gray-500">
+                                                            {{ formatTime(history.created_at) }} • {{ history.user?.role || 'Système' }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Description -->
+                                                <div class="ml-13 mb-2">
+                                                    <p class="text-sm text-gray-700">{{ history.description }}</p>
+                                                </div>
+
+                                                <!-- Lien vers le ticket -->
+                                                <div class="ml-13 flex items-center gap-2">
+                                                    <Link
+                                                        :href="route('tickets.show', history.ticket_id)"
+                                                        class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+                                                    >
+                                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                        Ticket #{{ history.ticket_id }}
+                                                    </Link>
+                                                    <span v-if="history.ticket?.requester" class="text-xs text-gray-400">
+                                                        par {{ history.ticket.requester.name }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Pagination -->

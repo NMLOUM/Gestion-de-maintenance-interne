@@ -189,7 +189,85 @@ class ReportController extends Controller
     private function generateExcel($type, $data, $request)
     {
         $filename = $type . '_report_' . date('Y-m-d') . '.xlsx';
-        
+
         return Excel::download(new TicketsExport($data['tickets']), $filename);
+    }
+
+    /**
+     * Générer rapport SLA
+     */
+    public function slaReport(Request $request)
+    {
+        $request->validate([
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
+            'format' => 'required|in:pdf,excel',
+        ]);
+
+        $startDate = Carbon::parse($request->date_from)->startOfDay();
+        $endDate = Carbon::parse($request->date_to)->endOfDay();
+
+        $tickets = Ticket::with(['requester', 'assignedUser', 'service', 'category'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        // Statistiques SLA
+        $slaStats = [
+            'total' => $tickets->count(),
+            'on_time' => 0,
+            'warning' => 0,
+            'critical' => 0,
+            'overdue' => 0,
+        ];
+
+        foreach ($tickets as $ticket) {
+            $slaStatus = $ticket->sla_status['status'] ?? 'ok';
+
+            if ($slaStatus === 'ok' || $slaStatus === 'completed') {
+                $slaStats['on_time']++;
+            } elseif ($slaStatus === 'warning') {
+                $slaStats['warning']++;
+            } elseif ($slaStatus === 'critical') {
+                $slaStats['critical']++;
+            } elseif ($slaStatus === 'overdue') {
+                $slaStats['overdue']++;
+            }
+        }
+
+        // Performance SLA par priorité
+        $slaByPriority = [];
+        foreach (['critical', 'high', 'normal', 'low'] as $priority) {
+            $priorityTickets = $tickets->where('priority', $priority);
+            $total = $priorityTickets->count();
+
+            if ($total > 0) {
+                $onTime = $priorityTickets->filter(function($ticket) {
+                    return in_array($ticket->sla_status['status'] ?? 'ok', ['ok', 'completed']);
+                })->count();
+
+                $slaByPriority[$priority] = [
+                    'total' => $total,
+                    'on_time' => $onTime,
+                    'percentage' => round(($onTime / $total) * 100, 2)
+                ];
+            }
+        }
+
+        $data = [
+            'title' => 'Rapport de Performance SLA',
+            'period' => $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y'),
+            'generated_at' => now()->format('d/m/Y à H:i'),
+            'generated_by' => auth()->user()->name,
+            'tickets' => $tickets,
+            'slaStats' => $slaStats,
+            'slaByPriority' => $slaByPriority,
+        ];
+
+        if ($request->format === 'pdf') {
+            $pdf = Pdf::loadView('reports.sla', $data);
+            return $pdf->download('rapport-sla-' . now()->format('Y-m-d') . '.pdf');
+        } else {
+            return Excel::download(new TicketsExport($tickets), 'rapport-sla-' . now()->format('Y-m-d') . '.xlsx');
+        }
     }
 }

@@ -184,17 +184,18 @@ class Ticket extends Model
     }
 
     /**
-     * Obtenir le délai SLA en heures selon la priorité
+     * Obtenir le délai SLA en heures selon la priorité (depuis config)
      */
     public function getSlaHoursAttribute()
     {
-        return match($this->priority) {
-            'critical' => 24,  // 1 jour
-            'high' => 72,      // 3 jours
-            'normal' => 168,   // 7 jours
-            'low' => 336,      // 14 jours
-            default => 168
-        };
+        $deadlines = config('sla.deadlines', [
+            'critical' => 4,
+            'high' => 24,
+            'normal' => 48,
+            'low' => 168,
+        ]);
+
+        return $deadlines[$this->priority] ?? 48;
     }
 
     /**
@@ -228,7 +229,7 @@ class Ticket extends Model
     }
 
     /**
-     * Obtenir le statut SLA formaté pour l'affichage
+     * Obtenir le statut SLA formaté pour l'affichage (basé sur config/sla.php)
      */
     public function getSlaStatusAttribute()
     {
@@ -237,12 +238,17 @@ class Ticket extends Model
                 'status' => 'completed',
                 'color' => 'gray',
                 'label' => 'Terminé',
-                'remaining' => null
+                'remaining' => null,
+                'percentage' => 0
             ];
         }
 
         $remaining = $this->sla_remaining_hours;
+        $percentage = $this->sla_percentage;
+        $warningThreshold = config('sla.alert_thresholds.warning', 80);
+        $criticalThreshold = config('sla.alert_thresholds.critical', 100);
 
+        // Dépassement SLA
         if ($remaining < 0) {
             $overdue = abs($remaining);
             return [
@@ -250,35 +256,42 @@ class Ticket extends Model
                 'color' => 'red',
                 'label' => 'Dépassé',
                 'remaining' => -$remaining,
+                'percentage' => $percentage,
                 'formatted' => $this->formatHours($overdue) . ' de retard'
             ];
         }
 
-        if ($remaining <= 4) {
+        // Critique (>= 100% du temps écoulé)
+        if ($percentage >= $criticalThreshold) {
             return [
                 'status' => 'critical',
                 'color' => 'red',
                 'label' => 'Critique',
                 'remaining' => $remaining,
+                'percentage' => $percentage,
                 'formatted' => $this->formatHours($remaining) . ' restantes'
             ];
         }
 
-        if ($remaining <= 24) {
+        // Alerte (>= 80% du temps écoulé)
+        if ($percentage >= $warningThreshold) {
             return [
                 'status' => 'warning',
                 'color' => 'orange',
                 'label' => 'Urgent',
                 'remaining' => $remaining,
+                'percentage' => $percentage,
                 'formatted' => $this->formatHours($remaining) . ' restantes'
             ];
         }
 
+        // Dans les temps (< 80%)
         return [
             'status' => 'ok',
             'color' => 'green',
             'label' => 'Dans les temps',
             'remaining' => $remaining,
+            'percentage' => $percentage,
             'formatted' => $this->formatHours($remaining) . ' restantes'
         ];
     }
@@ -338,5 +351,25 @@ class Ticket extends Model
     public function canBeClosed()
     {
         return $this->status === 'resolved';
+    }
+
+    /**
+     * Vérifier si le ticket a dépassé son SLA
+     */
+    public function isOverdueSla(): bool
+    {
+        if ($this->status === 'closed' || $this->status === 'cancelled') {
+            return false;
+        }
+
+        return $this->sla_remaining_hours < 0;
+    }
+
+    /**
+     * Obtenir la date limite SLA
+     */
+    public function getSlaDeadlineAttribute()
+    {
+        return $this->created_at->addHours($this->sla_hours);
     }
 }

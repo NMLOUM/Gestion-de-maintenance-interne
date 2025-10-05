@@ -4,6 +4,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue';
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue';
+import SlaBadge from '@/Components/SlaBadge.vue';
 
 const props = defineProps({
     myTickets: Array,
@@ -186,6 +187,7 @@ const getStatusLabel = (status) => {
                                     <div class="flex items-center space-x-2 mb-2">
                                         <span class="text-sm font-mono text-gray-600">#{{ ticket.id }}</span>
                                         <PriorityBadge :priority="ticket.priority" />
+                                        <SlaBadge :ticket="ticket" />
                                     </div>
                                     <h4 class="text-lg font-semibold text-gray-900 mb-1">{{ ticket.title }}</h4>
                                     <p class="text-sm text-gray-600 mb-3">{{ getStatusLabel(ticket.status) }}</p>

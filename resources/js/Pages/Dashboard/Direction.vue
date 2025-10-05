@@ -1,10 +1,13 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { router } from '@inertiajs/vue3';
+import BarChart from '@/Components/Charts/BarChart.vue';
+import DoughnutChart from '@/Components/Charts/DoughnutChart.vue';
+import LineChart from '@/Components/Charts/LineChart.vue';
 
-defineProps({
+const props = defineProps({
     ticketsByService: Array,
     ticketsByCategory: Array,
     globalPerformance: Object,
@@ -15,6 +18,78 @@ defineProps({
 
 const activeTab = ref('overview');
 let refreshInterval = null;
+
+// Données pour graphique barres - Tickets par service
+const serviceChartData = computed(() => ({
+    labels: props.ticketsByService?.map(s => s.name) || [],
+    datasets: [{
+        label: 'Nombre de tickets',
+        data: props.ticketsByService?.map(s => s.tickets_count) || [],
+        backgroundColor: [
+            'rgba(99, 102, 241, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(59, 130, 246, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+        ],
+        borderColor: [
+            'rgb(99, 102, 241)',
+            'rgb(139, 92, 246)',
+            'rgb(59, 130, 246)',
+            'rgb(16, 185, 129)',
+            'rgb(245, 158, 11)',
+        ],
+        borderWidth: 2
+    }]
+}));
+
+// Données pour graphique camembert - Tickets par catégorie
+const categoryChartData = computed(() => ({
+    labels: props.ticketsByCategory?.map(c => c.name) || [],
+    datasets: [{
+        data: props.ticketsByCategory?.map(c => c.tickets_count) || [],
+        backgroundColor: [
+            'rgba(99, 102, 241, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(236, 72, 153, 0.8)',
+            'rgba(251, 146, 60, 0.8)',
+            'rgba(34, 197, 94, 0.8)',
+            'rgba(59, 130, 246, 0.8)',
+        ],
+        borderColor: [
+            'rgb(99, 102, 241)',
+            'rgb(139, 92, 246)',
+            'rgb(236, 72, 153)',
+            'rgb(251, 146, 60)',
+            'rgb(34, 197, 94)',
+            'rgb(59, 130, 246)',
+        ],
+        borderWidth: 2
+    }]
+}));
+
+// Données pour graphique ligne - Tendances
+const trendChartData = computed(() => ({
+    labels: props.ticketTrend?.map(t => t.date) || [],
+    datasets: [
+        {
+            label: 'Créés',
+            data: props.ticketTrend?.map(t => t.created) || [],
+            borderColor: 'rgb(99, 102, 241)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.4
+        },
+        {
+            label: 'Résolus',
+            data: props.ticketTrend?.map(t => t.resolved) || [],
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            fill: true,
+            tension: 0.4
+        }
+    ]
+}));
 
 // Rafraîchir les données toutes les 60 secondes
 onMounted(() => {
@@ -178,44 +253,45 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <!-- Répartition par service et catégorie -->
+                        <!-- Répartition par service et catégorie - GRAPHIQUES -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Répartition par service -->
-                            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Tickets par service</h3>
-                                <div class="space-y-4" v-if="ticketsByService && ticketsByService.length > 0">
-                                    <div v-for="service in ticketsByService" :key="service.id"
-                                         class="flex items-center justify-between">
-                                        <div class="flex-1">
-                                            <h4 class="text-sm font-medium text-gray-900">{{ service.name }}</h4>
-                                            <div class="mt-1 w-full bg-gray-200 rounded-full h-2">
-                                                <div class="bg-indigo-600 h-2 rounded-full transition-all"
-                                                     :style="{ width: Math.min((service.tickets_count / Math.max(...ticketsByService.map(s => s.tickets_count))) * 100, 100) + '%' }">
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="ml-4 text-sm font-bold text-indigo-600">
-                                            {{ service.tickets_count }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-center py-8">
-                                    <p class="text-sm text-gray-500">Aucune donnée disponible</p>
+                            <!-- Répartition par service - Graphique à barres -->
+                            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                                    </svg>
+                                    📊 Tickets par service
+                                </h3>
+                                <BarChart v-if="ticketsByService && ticketsByService.length > 0"
+                                          :data="serviceChartData"
+                                          :height="300" />
+                                <div v-else class="text-center py-12">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                    <p class="text-sm text-gray-500 mt-2">Aucune donnée disponible</p>
                                 </div>
                             </div>
 
-                            <!-- Répartition par catégorie -->
-                            <div class="bg-white border border-gray-200 rounded-lg p-6">
-                                <h3 class="text-lg font-medium text-gray-900 mb-4">Tickets par catégorie</h3>
-                                <div class="grid grid-cols-2 gap-4" v-if="ticketsByCategory && ticketsByCategory.length > 0">
-                                    <div v-for="category in ticketsByCategory" :key="category.id"
-                                         class="text-center p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg border border-indigo-200 hover:shadow-md transition">
-                                        <div class="text-3xl font-bold text-indigo-600">{{ category.tickets_count }}</div>
-                                        <div class="text-sm text-gray-600 mt-2">{{ category.name }}</div>
-                                    </div>
-                                </div>
-                                <div v-else class="text-center py-8">
-                                    <p class="text-sm text-gray-500">Aucune donnée disponible</p>
+                            <!-- Répartition par catégorie - Graphique camembert -->
+                            <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/>
+                                        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/>
+                                    </svg>
+                                    🎯 Tickets par catégorie
+                                </h3>
+                                <DoughnutChart v-if="ticketsByCategory && ticketsByCategory.length > 0"
+                                               :data="categoryChartData"
+                                               :height="300" />
+                                <div v-else class="text-center py-12">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                    </svg>
+                                    <p class="text-sm text-gray-500 mt-2">Aucune donnée disponible</p>
                                 </div>
                             </div>
                         </div>

@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue';
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue';
+import SlaBadge from '@/Components/SlaBadge.vue';
 import AssignTicketModal from '@/Components/Tickets/AssignTicketModal.vue';
 
 const props = defineProps({
@@ -75,6 +76,41 @@ const getTimeAgo = (date) => {
     if (diffDays > 0) return `il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
     if (diffHours > 0) return `il y a ${diffHours}h`;
     return 'à l\'instant';
+};
+
+// Export functionality
+const showExportModal = ref(false);
+const exportForm = reactive({
+    date_from: new Date(new Date().setDate(1)).toISOString().split('T')[0], // Premier jour du mois
+    date_to: new Date().toISOString().split('T')[0], // Aujourd'hui
+    format: 'pdf'
+});
+
+const exportReport = (type) => {
+    // Créer un lien temporaire pour télécharger
+    const params = new URLSearchParams({
+        type: type,
+        date_from: exportForm.date_from,
+        date_to: exportForm.date_to,
+        format: exportForm.format,
+        _token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    });
+
+    // Ouvrir dans un nouvel onglet
+    window.open(route('reports.generate') + '?' + params.toString(), '_blank');
+};
+
+const exportSlaReport = () => {
+    // Créer un lien temporaire pour télécharger
+    const params = new URLSearchParams({
+        date_from: exportForm.date_from,
+        date_to: exportForm.date_to,
+        format: exportForm.format,
+        _token: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    });
+
+    // Ouvrir dans un nouvel onglet
+    window.open(route('reports.sla') + '?' + params.toString(), '_blank');
 };
 
 </script>
@@ -705,14 +741,13 @@ const getTimeAgo = (date) => {
                 <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-white mb-4">⚡ Actions rapides</h3>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Link :href="route('tickets.index')"
-                              class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
+                        <button @click="showExportModal = true"
+                                class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
                             <svg class="w-10 h-10 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
                             </svg>
-                            <span class="text-sm font-semibold block">📋 Tous les tickets</span>
-                        </Link>
+                            <span class="text-sm font-semibold block">📊 Exporter Rapports</span>
+                        </button>
 
                         <Link :href="route('tickets.index', { status: 'in_progress' })"
                               class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg p-6 text-center transition hover:scale-105">
@@ -752,5 +787,99 @@ const getTimeAgo = (date) => {
             :technicians="technicians"
             @close="closeAssignModal"
         />
+
+        <!-- Modal d'export de rapports -->
+        <div v-if="showExportModal" class="fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showExportModal = false"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                    <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <svg class="h-6 w-6 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                    📊 Export de Rapports
+                                </h3>
+                                <div class="mt-4 space-y-4">
+                                    <!-- Filtres de période -->
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">📅 Date de début</label>
+                                            <input v-model="exportForm.date_from" type="date"
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">📅 Date de fin</label>
+                                            <input v-model="exportForm.date_to" type="date"
+                                                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </div>
+                                    </div>
+
+                                    <!-- Format -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">📄 Format d'export</label>
+                                        <select v-model="exportForm.format"
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="pdf">PDF</option>
+                                            <option value="excel">Excel</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Boutons d'export -->
+                                    <div class="border-t pt-4 mt-4">
+                                        <p class="text-sm text-gray-600 mb-3">Sélectionnez le type de rapport à exporter :</p>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <button @click="exportReport('summary'); showExportModal = false"
+                                                    class="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition">
+                                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Rapport Général
+                                            </button>
+
+                                            <button @click="exportReport('detailed'); showExportModal = false"
+                                                    class="flex items-center justify-center px-4 py-3 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition">
+                                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Rapport Détaillé
+                                            </button>
+
+                                            <button @click="exportSlaReport(); showExportModal = false"
+                                                    class="flex items-center justify-center px-4 py-3 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 transition">
+                                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Rapport SLA
+                                            </button>
+
+                                            <button @click="exportReport('technician'); showExportModal = false"
+                                                    class="flex items-center justify-center px-4 py-3 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition">
+                                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                                                </svg>
+                                                Rapport Techniciens
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                        <button type="button" @click="showExportModal = false"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                            Annuler
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>

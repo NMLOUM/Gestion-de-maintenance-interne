@@ -281,6 +281,15 @@ const selectedPeriod = ref('month')
 const customStart = ref('')
 const customEnd = ref('')
 const lastUpdated = ref(new Date())
+const generating = ref(false)
+
+// Filtres pour génération de rapports
+const reportFilters = ref({
+  date_from: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split('T')[0],
+  date_to: new Date().toISOString().split('T')[0],
+  format: 'pdf'
+})
+
 let refreshInterval = null
 
 const loadData = () => {
@@ -333,5 +342,104 @@ const formatTime = (date) => {
     minute: '2-digit',
     second: '2-digit'
   })
+}
+
+// Générer rapport général
+const generateReport = (type) => {
+  if (!reportFilters.value.date_from || !reportFilters.value.date_to) {
+    alert('Veuillez sélectionner une période')
+    return
+  }
+
+  generating.value = type
+
+  // Créer un formulaire pour soumettre
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = '/reports/generate'
+  form.target = '_blank'
+
+  // CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+  if (csrfToken) {
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+  }
+
+  // Ajouter les paramètres
+  const params = {
+    type: type,
+    format: reportFilters.value.format,
+    date_from: reportFilters.value.date_from,
+    date_to: reportFilters.value.date_to
+  }
+
+  Object.keys(params).forEach(key => {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = key
+    input.value = params[key]
+    form.appendChild(input)
+  })
+
+  document.body.appendChild(form)
+  form.submit()
+  document.body.removeChild(form)
+
+  setTimeout(() => {
+    generating.value = false
+  }, 2000)
+}
+
+// Générer rapport SLA
+const generateSLAReport = () => {
+  if (!reportFilters.value.date_from || !reportFilters.value.date_to) {
+    alert('Veuillez sélectionner une période')
+    return
+  }
+
+  generating.value = 'sla'
+
+  // Créer un formulaire pour soumettre
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = '/reports/sla'
+  form.target = '_blank'
+
+  // CSRF token
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+  if (csrfToken) {
+    const csrfInput = document.createElement('input')
+    csrfInput.type = 'hidden'
+    csrfInput.name = '_token'
+    csrfInput.value = csrfToken
+    form.appendChild(csrfInput)
+  }
+
+  // Ajouter les paramètres
+  const params = {
+    format: reportFilters.value.format,
+    date_from: reportFilters.value.date_from,
+    date_to: reportFilters.value.date_to
+  }
+
+  Object.keys(params).forEach(key => {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = key
+    input.value = params[key]
+    form.appendChild(input)
+  })
+
+  document.body.appendChild(form)
+  form.submit()
+  document.body.removeChild(form)
+
+  setTimeout(() => {
+    generating.value = false
+  }, 2000)
 }
 </script>

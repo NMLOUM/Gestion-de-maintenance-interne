@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     show: Boolean,
@@ -24,9 +25,14 @@ watch(() => props.show, (newValue) => {
 const selectTechnician = (tech) => {
     // Bloquer la sélection si le technicien a 3 tickets actifs ou plus
     if (tech.active_tickets_count >= 3) {
-        alert('⚠️ Ce technicien est surchargé !\n\n' +
-              `Il a actuellement ${tech.active_tickets_count} tickets actifs.\n` +
-              'Veuillez choisir un technicien moins chargé ou attendre qu\'il résolve ses tickets en cours.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Technicien surchargé !',
+            html: `Ce technicien a actuellement <strong>${tech.active_tickets_count} tickets actifs</strong>.<br><br>
+                   Veuillez choisir un technicien moins chargé ou attendre qu'il résolve ses tickets en cours.`,
+            confirmButtonText: 'Compris',
+            confirmButtonColor: '#f59e0b'
+        });
         return;
     }
     selectedTechnician.value = tech.id;
@@ -34,16 +40,26 @@ const selectTechnician = (tech) => {
 
 const assignTicket = () => {
     if (!selectedTechnician.value) {
-        alert('Veuillez sélectionner un technicien');
+        Swal.fire({
+            icon: 'info',
+            title: 'Sélection requise',
+            text: 'Veuillez sélectionner un technicien',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6366f1'
+        });
         return;
     }
 
     // Vérifier à nouveau la charge avant d'assigner
     const selectedTech = props.technicians.find(t => t.id === selectedTechnician.value);
     if (selectedTech && selectedTech.active_tickets_count >= 3) {
-        alert('⚠️ Impossible d\'assigner ce ticket !\n\n' +
-              'Le technicien sélectionné a trop de tickets actifs.\n' +
-              'Veuillez choisir un autre technicien.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Impossible d\'assigner !',
+            html: 'Le technicien sélectionné a <strong>trop de tickets actifs</strong>.<br><br>Veuillez choisir un autre technicien.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ef4444'
+        });
         return;
     }
 
@@ -55,13 +71,28 @@ const assignTicket = () => {
         preserveScroll: false,
         preserveState: false,
         onSuccess: () => {
-            alert('✅ Ticket assigné avec succès !');
+            const techName = selectedTech.name;
+            Swal.fire({
+                icon: 'success',
+                title: 'Ticket assigné avec succès !',
+                html: `Le ticket <strong>#${props.ticketId}</strong> a été assigné à <strong>${techName}</strong>`,
+                confirmButtonText: 'Super !',
+                confirmButtonColor: '#10b981',
+                timer: 3000,
+                timerProgressBar: true
+            });
             emit('close');
             isSubmitting.value = false;
         },
         onError: (errors) => {
             console.error('Erreur assignation:', errors);
-            alert('❌ Erreur lors de l\'assignation. Veuillez réessayer.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Erreur d\'assignation',
+                text: 'Une erreur s\'est produite. Veuillez réessayer.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ef4444'
+            });
             isSubmitting.value = false;
         }
     });

@@ -17,9 +17,7 @@
                   </span>
                   <PriorityBadge :priority="ticket.priority" />
                   <StatusBadge :status="ticket.status" />
-                  <span v-if="ticket.is_overdue" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
-                    ⚠️ SLA Dépassé
-                  </span>
+                  <SlaBadge :ticket="ticket" :show-details="true" />
                 </div>
                 <h1 class="text-3xl font-bold text-white mb-3">
                   {{ ticket.title }}
@@ -109,6 +107,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                       </svg>
                       ❌ Annuler
+                    </button>
+
+                    <!-- Réouvrir et réassigner (pour les tickets annulés) -->
+                    <button
+                      v-if="ticket.status === 'cancelled' && canAssign"
+                      @click="showReopenModal = true"
+                      class="flex items-center justify-center px-4 py-3 bg-orange-600 text-white rounded-lg font-bold text-sm transition-all hover:bg-orange-700 hover:shadow-xl hover:scale-105 whitespace-nowrap shadow-lg"
+                    >
+                      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                      </svg>
+                      🔄 Réouvrir et réassigner
                     </button>
 
                     <!-- Évaluer (pour le demandeur si résolu ou fermé) -->
@@ -521,6 +531,66 @@
       :ticket-id="ticket.id"
       @close="showResolveModal = false"
     />
+
+    <!-- Modal de réouverture et réassignation -->
+    <div v-if="showReopenModal" class="fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+      <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" @click="showReopenModal = false"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 sm:mx-0 sm:h-10 sm:w-10">
+                <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+              </div>
+              <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left flex-1">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                  🔄 Réouvrir et réassigner le ticket
+                </h3>
+                <div class="mt-4">
+                  <p class="text-sm text-gray-500 mb-4">
+                    Ce ticket annulé sera réouvert et mis en attente. Sélectionnez un technicien pour l'assigner.
+                  </p>
+                  <div>
+                    <label for="reopen-technician" class="block text-sm font-medium text-gray-700 mb-2">
+                      Assigner à :
+                    </label>
+                    <select
+                      id="reopen-technician"
+                      v-model="reopenTechnician"
+                      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                      <option :value="null">Choisir un technicien</option>
+                      <option v-for="tech in technicians" :key="tech.id" :value="tech.id">
+                        {{ tech.name }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+            <button
+              type="button"
+              @click="reopenAndReassign"
+              class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              🔄 Réouvrir et assigner
+            </button>
+            <button
+              type="button"
+              @click="showReopenModal = false"
+              class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </AuthenticatedLayout>
 </template>
 
@@ -531,8 +601,12 @@ import { Head } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue'
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue'
+import SlaBadge from '@/Components/SlaBadge.vue'
 import EvaluationModal from '@/Components/Tickets/EvaluationModal.vue'
 import ResolveTicketModal from '@/Components/Tickets/ResolveTicketModal.vue'
+import { useSwal } from '@/composables/useSwal'
+
+const { confirm, success, error, toast } = useSwal()
 
 const props = defineProps({
   ticket: Object,
@@ -553,6 +627,8 @@ const uploading = ref(false)
 const fileInput = ref(null)
 const showEvaluationModal = ref(false)
 const showResolveModal = ref(false)
+const showReopenModal = ref(false)
+const reopenTechnician = ref(null)
 
 // Méthodes
 const formatDate = (date) => {
@@ -598,29 +674,61 @@ const updateStatus = () => {
   })
 }
 
-const quickUpdateStatus = (status) => {
+const quickUpdateStatus = async (status) => {
   const messages = {
-    'in_progress': '▶️ Démarrer l\'intervention sur ce ticket ?',
-    'resolved': '✅ Marquer ce ticket comme résolu ?',
-    'closed': '🔒 Clôturer définitivement ce ticket ?',
-    'cancelled': '❌ Annuler ce ticket ?',
-    'pending': '⏸️ Remettre ce ticket en attente ?'
+    'in_progress': {
+      title: 'Démarrer l\'intervention',
+      text: 'Voulez-vous démarrer le travail sur ce ticket ?',
+      icon: 'info',
+      confirmButtonText: 'Oui, démarrer'
+    },
+    'resolved': {
+      title: 'Marquer comme résolu',
+      text: 'Confirmer que ce ticket est résolu ?',
+      icon: 'success',
+      confirmButtonText: 'Oui, résolu'
+    },
+    'closed': {
+      title: 'Clôturer le ticket',
+      text: 'Voulez-vous clôturer définitivement ce ticket ?',
+      icon: 'warning',
+      confirmButtonText: 'Oui, clôturer'
+    },
+    'cancelled': {
+      title: 'Annuler le ticket',
+      text: 'Êtes-vous sûr de vouloir annuler ce ticket ?',
+      icon: 'warning',
+      confirmButtonText: 'Oui, annuler'
+    },
+    'pending': {
+      title: 'Remettre en attente',
+      text: 'Remettre ce ticket en attente ?',
+      icon: 'question',
+      confirmButtonText: 'Oui, remettre en attente'
+    }
   };
 
-  const confirmMessage = messages[status] || `Changer le statut du ticket vers "${status}" ?`;
+  const config = messages[status] || {
+    title: 'Changer le statut',
+    text: `Changer le statut vers "${status}" ?`,
+    icon: 'question',
+    confirmButtonText: 'Confirmer'
+  };
 
-  if (confirm(confirmMessage)) {
+  const result = await confirm(config);
+
+  if (result.isConfirmed) {
     router.post(route('tickets.status', props.ticket.id), {
       status: status
     }, {
       preserveScroll: false,
       onSuccess: () => {
         selectedStatus.value = status;
-        alert('✅ Statut mis à jour avec succès !');
+        toast('Statut mis à jour avec succès !', 'success');
       },
       onError: (errors) => {
         console.error('Erreur:', errors);
-        alert('❌ Erreur lors de la mise à jour du statut. Vérifiez vos permissions.');
+        error('Erreur lors de la mise à jour du statut. Vérifiez vos permissions.');
       }
     })
   }
@@ -668,6 +776,40 @@ const getRatingLabel = (rating) => {
 
 const canDeleteAttachment = (attachment) => {
   return props.canEdit || attachment.user_id === $page.props.auth.user.id
+}
+
+const reopenAndReassign = async () => {
+  if (!reopenTechnician.value) {
+    error('Veuillez sélectionner un technicien')
+    return
+  }
+
+  showReopenModal.value = false
+
+  // D'abord réouvrir le ticket (cancelled -> pending)
+  router.post(route('tickets.status', props.ticket.id), {
+    status: 'pending'
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // Puis assigner au nouveau technicien
+      router.post(route('tickets.assign', props.ticket.id), {
+        assigned_to: reopenTechnician.value
+      }, {
+        preserveScroll: false,
+        onSuccess: () => {
+          success('Ticket réouvert et réassigné avec succès !')
+          reopenTechnician.value = null
+        },
+        onError: () => {
+          error('Erreur lors de la réassignation')
+        }
+      })
+    },
+    onError: () => {
+      error('Erreur lors de la réouverture du ticket')
+    }
+  })
 }
 </script>
                   

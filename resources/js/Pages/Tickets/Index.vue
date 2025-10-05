@@ -148,13 +148,8 @@
                   </div>
 
                   <div class="text-center">
-                    <div class="text-xs text-gray-500">SLA</div>
-                    <div v-if="ticket.is_overdue" class="text-xs font-bold text-red-600">
-                      🔴 Retard
-                    </div>
-                    <div v-else class="text-xs font-semibold text-green-600">
-                      ✅ OK
-                    </div>
+                    <div class="text-xs text-gray-500 mb-1">SLA</div>
+                    <SlaBadge :ticket="ticket" />
                   </div>
                 </div>
 
@@ -203,6 +198,7 @@ import { Head, Link } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import StatusBadge from '@/Components/Tickets/StatusBadge.vue'
 import PriorityBadge from '@/Components/Tickets/PriorityBadge.vue'
+import SlaBadge from '@/Components/SlaBadge.vue'
 import Pagination from '@/Components/UI/Pagination.vue'
 import { debounce } from 'lodash'
 

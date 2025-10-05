@@ -178,20 +178,6 @@ class TicketPolicy
     }
 
     /**
-     * RÈGLE MÉTIER : Détermine si l'utilisateur peut valider un ticket résolu
-     */
-    public function validate(User $user, Ticket $ticket): bool
-    {
-        // Seuls Responsable IT et Direction peuvent valider
-        if (!($user->is_responsable_it || $user->is_direction)) {
-            return false;
-        }
-
-        // Le ticket doit être en statut "resolved"
-        return $ticket->status === 'resolved';
-    }
-
-    /**
      * Détermine si l'utilisateur peut fermer un ticket
      */
     public function close(User $user, Ticket $ticket): bool
@@ -206,9 +192,9 @@ class TicketPolicy
             return true;
         }
 
-        // L'employé peut fermer son propre ticket s'il est résolu ou validé
+        // L'employé peut fermer son propre ticket s'il est résolu
         if ($user->id === $ticket->requester_id) {
-            return in_array($ticket->status, ['resolved', 'validated']);
+            return $ticket->status === 'resolved';
         }
 
         return false;
@@ -373,6 +359,12 @@ class TicketPolicy
             if ($newStatus === 'cancelled' && $currentStatus === 'pending') {
                 return $user->id === $ticket->requester_id;
             }
+
+            // L'employé peut clôturer son propre ticket s'il est résolu
+            if ($newStatus === 'closed' && $currentStatus === 'resolved') {
+                return $user->id === $ticket->requester_id;
+            }
+
             return false;
         }
 
