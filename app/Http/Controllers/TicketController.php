@@ -135,7 +135,7 @@ class TicketController extends Controller
             'technicians' => User::technicians()->active()->get(),
             'canEdit' => auth()->user()->is_admin || auth()->user()->is_technician,
             'canComment' => true,
-            'canAssign' => auth()->user()->is_admin,
+            'canAssign' => auth()->user()->is_admin || auth()->user()->is_responsable_it,
         ]);
     }
 

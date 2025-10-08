@@ -62,7 +62,7 @@ const formatDate = (date) => {
     const notifDate = new Date(date);
     const diffSeconds = Math.floor((now - notifDate) / 1000);
 
-    if (diffSeconds < 60) return "À l'instant";
+    if (diffSeconds < 60) return "ï¿½ l'instant";
     if (diffSeconds < 3600) return `Il y a ${Math.floor(diffSeconds / 60)} min`;
     if (diffSeconds < 86400) return `Il y a ${Math.floor(diffSeconds / 3600)}h`;
     return notifDate.toLocaleDateString('fr-FR');
@@ -72,8 +72,10 @@ const getNotificationIcon = (type) => {
     const icons = {
         ticket_created: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
         ticket_assigned: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+        ticket_resolved: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
         status_changed: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
-        comment_added: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+        comment_added: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z',
+        evaluation: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
     };
     return icons[type] || icons.ticket_created;
 };
@@ -82,8 +84,10 @@ const getTypeColor = (type) => {
     const colors = {
         ticket_created: 'bg-blue-100 text-blue-800',
         ticket_assigned: 'bg-green-100 text-green-800',
+        ticket_resolved: 'bg-green-100 text-green-800',
         status_changed: 'bg-yellow-100 text-yellow-800',
-        comment_added: 'bg-purple-100 text-purple-800'
+        comment_added: 'bg-purple-100 text-purple-800',
+        evaluation: 'bg-yellow-100 text-yellow-800'
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
 };

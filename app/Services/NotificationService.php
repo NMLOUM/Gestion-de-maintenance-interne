@@ -110,18 +110,49 @@ class NotificationService
 
         $statusLabel = $statusLabels[$newStatus] ?? $newStatus;
 
+        // Pour les tickets résolus, récupérer le dernier commentaire (commentaire de résolution)
+        $resolutionComment = null;
+        $actualHours = null;
+        if ($newStatus === 'resolved') {
+            $lastComment = $ticket->comments()
+                ->where('is_internal', false)
+                ->latest()
+                ->first();
+
+            if ($lastComment && $lastComment->created_at->diffInSeconds($ticket->resolved_at ?? now()) < 30) {
+                // Si le commentaire a été créé dans les 30 secondes de la résolution, c'est le commentaire de résolution
+                $resolutionComment = $lastComment->comment;
+            }
+
+            $actualHours = $ticket->actual_hours;
+        }
+
         // Notification pour le demandeur
+        $notificationData = [
+            'ticket_number' => $ticket->ticket_number,
+            'old_status' => $ticket->getOriginal('status'),
+            'new_status' => $newStatus,
+        ];
+
+        // Construire le message pour le demandeur
+        $requesterMessage = "Statut changé par " . auth()->user()->name;
+        if ($newStatus === 'resolved' && $resolutionComment) {
+            $requesterMessage = "✅ Résolu par " . auth()->user()->name;
+            if ($actualHours) {
+                $requesterMessage .= " (⏱️ {$actualHours}h)";
+            }
+            $requesterMessage .= " - " . \Illuminate\Support\Str::limit($resolutionComment, 100);
+            $notificationData['resolution_comment'] = $resolutionComment;
+            $notificationData['actual_hours'] = $actualHours;
+        }
+
         Notification::createForUser(
             $ticket->requester_id,
-            'status_changed',
+            $newStatus === 'resolved' ? 'ticket_resolved' : 'status_changed',
             "Ticket {$ticket->ticket_number} : {$statusLabel}",
-            "Statut changé par " . auth()->user()->name,
+            $requesterMessage,
             $ticket->id,
-            [
-                'ticket_number' => $ticket->ticket_number,
-                'old_status' => $ticket->getOriginal('status'),
-                'new_status' => $newStatus,
-            ]
+            $notificationData
         );
 
         // Email au demandeur
@@ -149,18 +180,26 @@ class NotificationService
                           ->where('id', '!=', $ticket->requester_id) // Éviter doublon si le demandeur est superviseur
                           ->get();
 
+        // Message pour les superviseurs
+        $supervisorMessage = "Changé par " . auth()->user()->name;
+        if ($newStatus === 'resolved') {
+            $supervisorMessage = "✅ Résolu par " . auth()->user()->name;
+            if ($actualHours) {
+                $supervisorMessage .= " en {$actualHours}h";
+            }
+            if ($resolutionComment) {
+                $supervisorMessage .= " - " . \Illuminate\Support\Str::limit($resolutionComment, 80);
+            }
+        }
+
         foreach ($supervisors as $supervisor) {
             Notification::createForUser(
                 $supervisor->id,
-                'status_changed',
+                $newStatus === 'resolved' ? 'ticket_resolved' : 'status_changed',
                 "Ticket {$ticket->ticket_number} : {$statusLabel}",
-                "Changé par " . auth()->user()->name,
+                $supervisorMessage,
                 $ticket->id,
-                [
-                    'ticket_number' => $ticket->ticket_number,
-                    'new_status' => $newStatus,
-                    'changed_by' => auth()->user()->name,
-                ]
+                $notificationData
             );
         }
     }
