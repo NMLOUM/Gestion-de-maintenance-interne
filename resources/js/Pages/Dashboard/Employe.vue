@@ -75,14 +75,14 @@ const getStatusLabel = (status) => {
                 <!-- 📊 Statistiques en cartes -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <!-- Total -->
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-lg p-6 border border-blue-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-blue-100 text-sm font-medium">Mes tickets</p>
-                                <p class="text-3xl font-bold">{{ stats?.my_tickets || 0 }}</p>
+                                <p class="text-blue-700 text-sm font-medium">Mes tickets</p>
+                                <p class="text-3xl font-bold text-blue-800">{{ stats?.my_tickets || 0 }}</p>
                             </div>
-                            <div class="bg-white bg-opacity-30 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-blue-200 rounded-full p-3">
+                                <svg class="w-8 h-8 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
                                     <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
                                 </svg>
@@ -91,14 +91,14 @@ const getStatusLabel = (status) => {
                     </div>
 
                     <!-- En attente -->
-                    <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg shadow-lg p-6 border border-amber-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-yellow-100 text-sm font-medium">En attente</p>
-                                <p class="text-3xl font-bold">{{ stats?.pending || 0 }}</p>
+                                <p class="text-amber-700 text-sm font-medium">En attente</p>
+                                <p class="text-3xl font-bold text-amber-800">{{ stats?.pending || 0 }}</p>
                             </div>
-                            <div class="bg-white bg-opacity-30 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-amber-200 rounded-full p-3">
+                                <svg class="w-8 h-8 text-amber-700" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
@@ -106,14 +106,14 @@ const getStatusLabel = (status) => {
                     </div>
 
                     <!-- En cours -->
-                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-lg p-6 border border-orange-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-orange-100 text-sm font-medium">En cours</p>
-                                <p class="text-3xl font-bold">{{ stats?.in_progress || 0 }}</p>
+                                <p class="text-orange-700 text-sm font-medium">En cours</p>
+                                <p class="text-3xl font-bold text-orange-800">{{ stats?.in_progress || 0 }}</p>
                             </div>
-                            <div class="bg-white bg-opacity-30 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-orange-200 rounded-full p-3">
+                                <svg class="w-8 h-8 text-orange-700" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
@@ -121,35 +121,18 @@ const getStatusLabel = (status) => {
                     </div>
 
                     <!-- Résolus -->
-                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow-lg p-6 border border-emerald-200">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-green-100 text-sm font-medium">Résolus</p>
-                                <p class="text-3xl font-bold">{{ stats?.resolved || 0 }}</p>
+                                <p class="text-emerald-700 text-sm font-medium">Résolus</p>
+                                <p class="text-3xl font-bold text-emerald-800">{{ stats?.resolved || 0 }}</p>
                             </div>
-                            <div class="bg-white bg-opacity-30 rounded-full p-3">
-                                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="bg-emerald-200 rounded-full p-3">
+                                <svg class="w-8 h-8 text-emerald-700" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                                 </svg>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Bouton Créer un ticket -->
-                <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="text-white">
-                            <h3 class="text-lg font-semibold mb-1">Besoin d'aide ?</h3>
-                            <p class="text-indigo-100 text-sm">Créez une nouvelle demande de maintenance</p>
-                        </div>
-                        <Link :href="route('tickets.create')"
-                              class="bg-white text-indigo-600 px-6 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition flex items-center">
-                            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                            Nouveau Ticket
-                        </Link>
                     </div>
                 </div>
 
@@ -303,25 +286,57 @@ const getStatusLabel = (status) => {
 
                         <!-- Actions rapides -->
                         <div class="mt-8">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-4">⚡ Actions rapides</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <svg class="w-6 h-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Actions rapides
+                            </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Tous mes tickets -->
                     <Link :href="route('tickets.index')"
-                          class="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-indigo-500 hover:shadow-md transition text-center">
-                        <svg class="w-12 h-12 mx-auto text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <h4 class="font-semibold text-gray-900 mb-1">Tous mes tickets</h4>
-                        <p class="text-sm text-gray-600">Voir l'historique complet</p>
+                          class="group relative bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 hover:border-blue-400 hover:shadow-xl hover:scale-105 transition-all duration-300 text-center overflow-hidden">
+                        <div class="absolute top-0 right-0 w-20 h-20 bg-blue-200 rounded-full -mr-10 -mt-10 opacity-20 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div class="relative">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform duration-300 shadow-lg">
+                                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-1 text-lg">📋 Tous mes tickets</h4>
+                            <p class="text-sm text-gray-600">Historique complet</p>
+                        </div>
                     </Link>
 
+                    <!-- Nouveau ticket -->
                     <Link :href="route('tickets.create')"
-                          class="bg-white border-2 border-gray-200 rounded-lg p-6 hover:border-indigo-500 hover:shadow-md transition text-center">
-                        <svg class="w-12 h-12 mx-auto text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <h4 class="font-semibold text-gray-900 mb-1">Nouveau ticket</h4>
-                        <p class="text-sm text-gray-600">Créer une demande</p>
+                          class="group relative bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6 hover:border-green-400 hover:shadow-xl hover:scale-105 transition-all duration-300 text-center overflow-hidden">
+                        <div class="absolute top-0 right-0 w-20 h-20 bg-green-200 rounded-full -mr-10 -mt-10 opacity-20 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div class="relative">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform duration-300 shadow-lg">
+                                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-1 text-lg">➕ Nouveau ticket</h4>
+                            <p class="text-sm text-gray-600">Créer une demande</p>
+                        </div>
                     </Link>
+
+                    <!-- Aide & FAQ -->
+                    <button @click="activeTab = 'faq'"
+                          class="group relative bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-6 hover:border-purple-400 hover:shadow-xl hover:scale-105 transition-all duration-300 text-center overflow-hidden">
+                        <div class="absolute top-0 right-0 w-20 h-20 bg-purple-200 rounded-full -mr-10 -mt-10 opacity-20 group-hover:scale-150 transition-transform duration-500"></div>
+                        <div class="relative">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform duration-300 shadow-lg">
+                                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-gray-900 mb-1 text-lg">❓ Aide & FAQ</h4>
+                            <p class="text-sm text-gray-600">Questions fréquentes</p>
+                        </div>
+                    </button>
                         </div>
                         </div>
                     </div>

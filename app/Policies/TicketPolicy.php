@@ -15,7 +15,6 @@ class TicketPolicy
         // Tous les utilisateurs authentifiés peuvent voir les tickets
         return true;
     }
-
     /**
      * Détermine si l'utilisateur peut voir un ticket spécifique
      */
@@ -58,23 +57,21 @@ class TicketPolicy
         if ($user->is_direction) {
             return true;
         }
-
         // Responsable IT peut toujours modifier
         if ($user->is_responsable_it) {
             return true;
         }
-
-        // Techniciens NE peuvent PAS modifier les détails du ticket, seulement le statut
-        // (Les détails se modifient via updateStatus ou addComment)
-
+        // Techniciens peuvent modifier SEULEMENT s'ils sont assignés au ticket
+        // (Pour mettre à jour actual_hours lors de la résolution)
+        if ($user->is_technician && !$user->is_responsable_it) {
+            return $ticket->assigned_to === $user->id;
+        }
         // Employés peuvent modifier SEULEMENT LEURS tickets et SEULEMENT si en attente
         if ($user->is_employe && $user->id === $ticket->requester_id) {
             return $ticket->status === 'pending';
         }
-
         return false;
     }
-
     /**
      * Détermine si l'utilisateur peut supprimer un ticket
      */
@@ -83,7 +80,6 @@ class TicketPolicy
         // Seule la direction peut supprimer des tickets
         return $user->is_direction;
     }
-
     /**
      * RÈGLE MÉTIER : Détermine si l'utilisateur peut assigner un ticket
      */
@@ -92,7 +88,6 @@ class TicketPolicy
         // Responsable IT et Direction peuvent assigner des tickets
         return $user->is_responsable_it || $user->is_direction;
     }
-
     /**
      * RÈGLE MÉTIER : Détermine si l'utilisateur peut réassigner un ticket
      */
@@ -101,7 +96,6 @@ class TicketPolicy
         // Responsable IT et Direction peuvent réaffecter un ticket
         return $user->is_responsable_it || $user->is_direction;
     }
-
     /**
      * RÈGLE MÉTIER : Un ticket ne peut être "résolu" que par le technicien assigné
      */
@@ -111,20 +105,16 @@ class TicketPolicy
         if ($user->is_direction) {
             return true;
         }
-
         // Responsable IT peut toujours résoudre
         if ($user->is_responsable_it) {
             return true;
         }
-
         // Seul le technicien assigné peut résoudre le ticket
         if ($ticket->assigned_to && $user->id === $ticket->assigned_to) {
             return $ticket->status === 'in_progress';
         }
-
         return false;
     }
-
     /**
      * Détermine si l'utilisateur peut changer le statut d'un ticket
      */
@@ -328,7 +318,8 @@ class TicketPolicy
         }
 
         // Pour les techniciens : vérifier qu'ils sont assignés au ticket
-        if ($user->is_technician) {
+        // SAUF pour le Responsable IT qui peut tout faire
+        if ($user->is_technician && !$user->is_responsable_it) {
             // Le technicien doit être assigné au ticket
             if ($ticket->assigned_to !== $user->id) {
                 return false;

@@ -1,9 +1,9 @@
 <template>
   <AuthenticatedLayout>
     <Head :title="`Ticket ${ticket.ticket_number}`" />
-
+    <!-- Test HMR -->
     <div class="py-6">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+      <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
         <!-- En-tête avec actions en ligne -->
         <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-2xl mb-6 overflow-hidden">
           <div class="p-6">
@@ -724,7 +724,52 @@ const quickUpdateStatus = async (status) => {
       preserveScroll: false,
       onSuccess: () => {
         selectedStatus.value = status;
-        toast('Statut mis à jour avec succès !', 'success');
+
+        // Messages de succès personnalisés selon le statut
+        if (status === 'in_progress') {
+          success({
+            title: '✅ Intervention démarrée !',
+            html: `
+              <div class="text-left">
+                <p class="mb-2">Vous avez commencé à travailler sur ce ticket.</p>
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                  <p class="font-semibold text-blue-800 mb-1">📋 Ticket #${props.ticket.ticket_number}</p>
+                  <p class="text-sm text-blue-700">Le demandeur et le responsable IT ont été notifiés.</p>
+                </div>
+              </div>
+            `,
+            confirmButtonText: 'Compris !'
+          });
+        } else if (status === 'cancelled') {
+          success({
+            title: '❌ Ticket annulé',
+            text: 'Le ticket a été annulé avec succès.',
+            confirmButtonText: 'OK'
+          });
+        } else if (status === 'closed') {
+          success({
+            title: '🔒 Ticket clôturé avec succès !',
+            html: `
+              <div class="text-left">
+                <p class="mb-2">Le ticket a été clôturé définitivement.</p>
+                <div class="bg-gray-50 border-l-4 border-gray-500 p-3 rounded">
+                  <p class="font-semibold text-gray-800 mb-1">📋 Ticket #${props.ticket.ticket_number}</p>
+                  <p class="text-sm text-gray-700">Merci d'avoir utilisé le système de maintenance.</p>
+                </div>
+              </div>
+            `,
+            confirmButtonText: 'Parfait !',
+            confirmButtonColor: '#374151'
+          });
+        } else if (status === 'pending') {
+          success({
+            title: '⏸️ Ticket en attente',
+            text: 'Le ticket a été remis en attente.',
+            confirmButtonText: 'OK'
+          });
+        } else {
+          toast('Statut mis à jour avec succès !', 'success');
+        }
       },
       onError: (errors) => {
         console.error('Erreur:', errors);

@@ -116,6 +116,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
+import Swal from 'sweetalert2'
 
 const props = defineProps({
   show: Boolean,
@@ -165,9 +166,59 @@ const submitResolution = () => {
             preserveScroll: true,
             onSuccess: () => {
               closeModal()
+
+              // Afficher SweetAlert de succès
+              Swal.fire({
+                icon: 'success',
+                title: '✅ Ticket résolu !',
+                html: `
+                  <div class="text-left">
+                    <p class="mb-2">Le ticket a été marqué comme résolu avec succès.</p>
+                    <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                      <p class="font-semibold text-green-800 mb-1">⏱️ Temps passé : ${form.actual_hours}h</p>
+                      <p class="text-sm text-green-700">Le demandeur et le responsable IT ont été notifiés.</p>
+                    </div>
+                  </div>
+                `,
+                confirmButtonText: 'Super !',
+                confirmButtonColor: '#10b981',
+                showClass: {
+                  popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                  popup: 'animate__animated animate__fadeOutUp'
+                }
+              })
+            },
+            onError: () => {
+              Swal.fire({
+                icon: 'error',
+                title: 'Erreur',
+                text: 'Une erreur est survenue lors de la résolution du ticket.',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#ef4444'
+              })
             }
           })
+        },
+        onError: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Erreur',
+            text: 'Une erreur est survenue lors de l\'ajout du commentaire.',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ef4444'
+          })
         }
+      })
+    },
+    onError: () => {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur',
+        text: 'Une erreur est survenue lors de la mise à jour du temps passé.',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444'
       })
     }
   })
